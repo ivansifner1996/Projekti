@@ -1,0 +1,254 @@
+Sveuèilište Jurja Dobrile u Puli
+Odjel za informacijsko-komunikacijske tehnologije
+
+Kolegij: Baze podataka II (zimski semestar 2016./2017.)
+Nositelj kolegija: prof. dr. Vanja Bevanda
+
+Zadatak sastavio: Zlatko Sirotiæ, univ.spec.inf., ISTRA TECH d.o.o., Pula
+
+
+TIM : Ivan Šifner, Danko Salopek, Robert Ostovic, Alen Gromila
+
+SIROVINE I RASTAV - BATCH
+
+
+1. TABLICE
+
+1.1. Matiène tablice (M)
+
+M_DOBAVLJACI (dobavljaèi)
+
+id: number(20)
+sifra: varchar2(10)
+naziv: varchar2(40)
+naziv_duzi: varchar2(100)
+adresa: varchar2(50)
+user_dodavanja: varchar2(30)
+datum_dodavanja: date
+user_izmjene: varchar2(30)
+datum_izmjene: date
+
+
+M_MT (mjesta troška)
+
+id: number(20)
+sifra: varchar2(10)
+naziv: varchar2(40)
+naziv_duzi: varchar2(100)
+user_dodavanja: varchar2(30)
+datum_dodavanja: date
+user_izmjene: varchar2(30)
+datum_izmjene: date
+
+
+M_SIROVINE (sirovine)
+
+id: number(20)
+sifra: varchar2(10)
+naziv: varchar2(40)
+naziv_duzi: varchar2(100)
+oznaka_potvrde: varchar2(1) (N ili D)
+user_dodavanja: varchar2(30)
+datum_dodavanja: date
+user_izmjene: varchar2(30)
+datum_izmjene: date
+
+
+M_NAMIRNICE (namirnice)
+
+id: number(20)
+sifra: varchar2(10)
+naziv: varchar2(40)
+naziv_duzi: varchar2(100)
+user_dodavanja: varchar2(30)
+datum_dodavanja: date
+user_izmjene: varchar2(30)
+datum_izmjene: date
+
+
+M_RASTAV_SIROVINA (rastav sirovina)
+
+id: number(20)
+id_sirovine: number(20)
+id_namirnice: number(20)
+udio: number(5,2)
+user_dodavanja: varchar2(30)
+datum_dodavanja: date
+user_izmjene: varchar2(30)
+datum_izmjene: date
+
+
+1.2. Tablice dokumenata (transakcijske tablice, T)
+
+T_PRIMKE_ZAG (primke - zaglavlja)
+
+id: number(20)
+id_dobavljaca: number(20)
+id_mt: number(20)
+broj: varchar2(10)
+datum_isporuke: date
+datum_zaprimanja: date
+opis: varchar2(40)
+opis_duzi: varchar2(100)
+oznaka_potvrde: varchar2(1) (N ili D)
+user_dodavanja: varchar2(30)
+datum_dodavanja: date
+user_izmjene: varchar2(30)
+datum_izmjene: date
+
+
+T_PRIMKE_STA (primke - stavke)
+
+id: number(20)
+id_primke: number(20)
+id_sirovine: number(20)
+kolicina: number(12,2)
+nabavna_cijena: number(10,2)
+user_dodavanja: varchar2(30)
+datum_dodavanja: date
+user_izmjene: varchar2(30)
+datum_izmjene: date
+
+
+1.3. Izvedene tablice (I)
+
+I_ULAZ_NAMIRNICA (ukupni ulaz namirnica)
+
+id: number(20)
+datum: date;
+id_mt: number(20)
+id_namirnice: number(20)
+kolicina: number(12,2)
+user_dodavanja: varchar2(30)
+datum_dodavanja: date
+user_izmjene: varchar2(30)
+datum_izmjene: date
+
+
+2. POSLOVNA PRAVILA (preciznije - integritetna ogranièenja i poslovna logika)
+
+Zbog jednostavnosti, pretpostavlja se da NEMA ovih zahtjeva (koji u praksi postoje):
+- višekorisnièki rad;
+- potreba za neprekinutim slijedom rednih brojeva dokumenata - u praksi ne smije biti "rupa" u brojevima dokumenata;
+- storna dokumenata i negativne kolièina u dokumentima
+...
+
+Polje s nazivom ID je primarni kljuè (PK), a polje s nazivom ID_xxx (npr. ID_DOBAVLJACA u zaglavlju primke) je vanjski kljuè (FK).
+
+Sva polja su obavezna (NOT NULL), osim polja naziv_duzi i opis_duzi.
+
+Šifre, brojevi dokumenata i nazivi su jedinstveni unutar tablice.
+
+Kod primke, datum_isporuke mora biti manji ili jednak od datum_zaprimanja (datum_isporuke <= datum_zaprimanja).
+
+Na jednoj primki, ista sirovina se smije unijeti samo jednom.
+
+Kolièina sirovine u stavci mora biti pozitivna (veæa od nule).
+
+Jedna sirovina rastavlja se na jednu ili više namirnica.
+Jedna namirnica može se dobiti iz rastava više sirovina.
+
+Udio namirnice u rastavu sirovine mora biti veæi od 0 i manji ili jednak 100.
+
+Udio svih namirnica u rastavu sirovine mora biti 100%.
+To se provjerava on line:
+kad AUR okidaè na sirovinama "vidi" da je stara vrijednost u oznaka_potvrde = N, a nova vrijednost = D
+poziva proceduru koja provjerava pravilo. 
+
+Polje Kolicina u tablici Ulaz_namirnica raèuna se jedanput dnevno.
+Pamti se ukupna ulazna kolièina namirnice za dan i MT.
+Kod obrade se u zaglavlju dokumenata oznaka_potvrde mijenja iz N u D.
+
+
+3. REALIZACIJA PUNJENJA STANDARDNIH POLJA
+
+Punjenje ID-a i audit polja (DATUM_DODAVANJA, USER_DODAVANJA, DATUM_IZMJENE, USER_IZMJENE)
+može biti ovakvo (ne mora biti potpuno isto):
+
+CREATE SEQUENCE sekvenca_za_id
+/
+
+CREATE OR REPLACE PACKAGE pomocni_pak IS
+  FUNCTION sekvenca (id_p NUMBER) RETURN NUMBER;
+
+  PROCEDURE upisi_audit_polja (
+    user_dodavanja_p  IN OUT VARCHAR2,
+    datum_dodavanja_p IN OUT DATE,
+    user_izmjene_p    IN OUT VARCHAR2,
+    datum_izmjene_p   IN OUT DATE);
+END;
+/
+CREATE OR REPLACE PACKAGE BODY pomocni_pak IS
+  FUNCTION sekvenca (id_p NUMBER) RETURN NUMBER
+  IS
+    id_l NUMBER;
+  BEGIN
+    /* ako je klijent poslao vrijednost ID-a, ne mijenja se */
+    IF id_p IS NULL THEN
+      id_l := sekvenca_za_id.NEXTVAL;
+    ELSE
+      id_l := id_p;
+    END IF;
+
+    RETURN id_l;
+  END;
+
+  PROCEDURE upisi_audit_polja (
+    user_dodavanja_p  IN OUT VARCHAR2,
+    datum_dodavanja_p IN OUT DATE,
+    user_izmjene_p    IN OUT VARCHAR2,
+    datum_izmjene_p   IN OUT DATE)
+  IS
+  BEGIN
+    /* puni se samo kod unosa retka */
+    IF user_dodavanja_p IS NULL THEN
+      user_dodavanja_p  := USER;
+      datum_dodavanja_p := SYSDATE;
+    END IF;
+
+    /* puni se kod unosa i izmjene retka */
+    user_izmjene_p  := USER;
+    datum_izmjene_p := SYSDATE;
+  END;
+END;
+/
+
+CREATE OR REPLACE TRIGGER BIR_ime_tablice
+ BEFORE INSERT
+ ON ime_tablice
+ FOR EACH ROW
+BEGIN
+  :NEW.id := pomocni_pak.sekvenca (:NEW.id);
+
+  pomocni_pak.upisi_audit_polja (
+    :NEW.user_dodavanja,
+    :NEW.datum_dodavanja,
+    :NEW.user_izmjene,
+    :NEW.datum_izmjene);
+END;
+/
+
+CREATE OR REPLACE TRIGGER BUR_ime_tablice
+ BEFORE UPDATE
+ ON ime_tablice
+ FOR EACH ROW
+BEGIN
+  pomocni_pak.upisi_audit_polja (
+    :NEW.user_dodavanja,
+    :NEW.datum_dodavanja,
+    :NEW.user_izmjene,
+    :NEW.datum_izmjene);
+END;
+/
+
+
+4. Zadatak
+
+- napraviti DDL skripte, sa svim deklarativnim ogranièenjima (PK, UK, FK, NOT NULL, CK);
+
+- nacrtati model tablica, npr. u SQLDeveloperu (inaèe, nedavno je izašao novi SQLDeveloper 4.0, ako netko želi raditi s najnovijom verzijom);
+
+- napisati PL/SQL programski kod u okidaèima i/ili paketima, vezan za poslovna pravila (koja se ne mogu riješiti deklarativno);
+
+- testirati, unosom podataka kroz SQL i provjerom kroz SQL.
+

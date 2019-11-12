@@ -1,0 +1,595 @@
+
+ CREATE TABLE m_dobavljaci (
+    id                NUMBER(20) NOT NULL,
+    sifra             NVARCHAR2(10) NOT NULL,
+    naziv             NVARCHAR2(40),
+    naziv_duzi        NVARCHAR2(100),
+    adresa            NVARCHAR2(50) NOT NULL,
+    user_dodavanja    NVARCHAR2(30) NOT NULL,
+    datum_dodavanja   DATE NOT NULL,
+    user_izmjene      NVARCHAR2(30) NOT NULL,
+    datum_izmjene     DATE NOT NULL
+);
+
+ALTER TABLE m_dobavljaci ADD CONSTRAINT m_dobavljaci_pk PRIMARY KEY ( id );
+
+ALTER TABLE m_dobavljaci ADD CONSTRAINT m_dobavljaci_sifra UNIQUE ( sifra );
+
+ALTER TABLE m_dobavljaci ADD CONSTRAINT m_dobavljaci_naziv UNIQUE ( naziv );
+
+ALTER TABLE m_dobavljaci ADD CONSTRAINT m_dobavljaci_naziv_duzi UNIQUE ( naziv_duzi );
+
+CREATE TABLE m_mt (
+    id                NUMBER(20) NOT NULL,
+    sifra             NVARCHAR2(10) NOT NULL,
+    naziv             NVARCHAR2(40),
+    naziv_duzi        NVARCHAR2(100),
+    user_dodavanja    NVARCHAR2(30) NOT NULL,
+    datum_dodavanja   DATE NOT NULL,
+    user_izmjene      NVARCHAR2(30) NOT NULL,
+    datum_izmjene     DATE NOT NULL
+);
+
+ALTER TABLE m_mt ADD CONSTRAINT m_mt_pk PRIMARY KEY ( id );
+
+ALTER TABLE m_mt ADD CONSTRAINT m_mt_sifra UNIQUE ( sifra );
+
+ALTER TABLE m_mt ADD CONSTRAINT m_mt_naziv UNIQUE ( naziv );
+
+ALTER TABLE m_mt ADD CONSTRAINT m_mt_naziv_duzi UNIQUE ( naziv_duzi );
+
+CREATE TABLE m_namirnice (
+    id                NUMBER(20) NOT NULL,
+    sifra             NVARCHAR2(10) NOT NULL,
+    naziv             NVARCHAR2(40) NOT NULL,
+    naziv_duzi        NVARCHAR2(100) NOT NULL,
+    user_dodavanja    NVARCHAR2(30) NOT NULL,
+    datum_dodavanja   DATE NOT NULL,
+    user_izmjene      NVARCHAR2(30) NOT NULL,
+    datum_izmjene     DATE NOT NULL
+);
+
+ALTER TABLE m_namirnice ADD CONSTRAINT m_namirnice_pk PRIMARY KEY ( id );
+
+ALTER TABLE m_namirnice ADD CONSTRAINT m_namirnice_sifra UNIQUE ( sifra );
+
+ALTER TABLE m_namirnice ADD CONSTRAINT m_namirnice_naziv UNIQUE ( naziv );
+
+ALTER TABLE m_namirnice ADD CONSTRAINT m_namirnice_naziv_duzi UNIQUE ( naziv_duzi );
+
+CREATE TABLE m_sirovine (
+    id                NUMBER(20) NOT NULL,
+    sifra             NVARCHAR2(10) NOT NULL,
+    naziv             NVARCHAR2(40),
+    naziv_duzi        NVARCHAR2(100),
+    oznaka_potvrde    NVARCHAR2(1) DEFAULT 'N' NOT NULL,
+    user_dodavanja    NVARCHAR2(30) NOT NULL,
+    datum_dodavanja   DATE NOT NULL,
+    user_izmjene      NVARCHAR2(30) NOT NULL,
+    datum_izmjene     DATE NOT NULL
+);
+
+ALTER TABLE m_sirovine ADD CONSTRAINT m_sirovine_ck_1 CHECK (oznaka_potvrde IN(
+    'N','D'
+) );
+ALTER TABLE m_sirovine ADD CONSTRAINT m_sirovine_pk PRIMARY KEY ( id );
+
+ALTER TABLE m_sirovine ADD CONSTRAINT m_sirovine_sifra UNIQUE ( sifra );
+
+ALTER TABLE m_sirovine ADD CONSTRAINT m_sirovine_naziv UNIQUE ( naziv );
+
+ALTER TABLE m_sirovine ADD CONSTRAINT m_sirovine_naziv_duzi UNIQUE ( naziv_duzi );
+
+CREATE TABLE m_rastav_sirovina (
+    id                NUMBER(20) NOT NULL,
+    id_sirovine       NUMBER(20) NOT NULL,
+    id_namirnice      NUMBER(20) NOT NULL,
+    udio              NUMBER(5,2) NOT NULL,
+    user_dodavanja    NVARCHAR2(30) NOT NULL,
+    datum_dodavanja   DATE NOT NULL,
+    user_izmjene      NVARCHAR2(30) NOT NULL,
+    datum_izmjene     DATE NOT NULL
+);
+
+CREATE INDEX m_rastav_sirovina_idx_sir ON
+    m_rastav_sirovina ( id_sirovine ASC );
+
+CREATE INDEX m_rastav_sirovina_idx_nam ON
+    m_rastav_sirovina ( id_namirnice ASC );
+
+ALTER TABLE m_rastav_sirovina ADD CONSTRAINT m_rastav_sirovina_pk PRIMARY KEY ( id );
+
+ALTER TABLE m_rastav_sirovina
+    ADD CONSTRAINT m_namirnice_fk FOREIGN KEY ( id_namirnice )
+        REFERENCES m_namirnice ( id );
+
+ALTER TABLE m_rastav_sirovina
+    ADD CONSTRAINT m_sirovine_fkv2 FOREIGN KEY ( id_sirovine )
+        REFERENCES m_sirovine ( id );
+
+ALTER TABLE m_rastav_sirovina ADD CONSTRAINT m_rastav_sirovina_un UNIQUE ( id_sirovine,
+id_namirnice );
+
+CREATE TABLE t_primke_zag (
+    id                 NUMBER(20) NOT NULL,
+    id_dobavljaca   NUMBER(20) NOT NULL,
+    id_mt              NUMBER(20) NOT NULL,
+    broj               NVARCHAR2(10) NOT NULL,
+    datum_isporuke     DATE NOT NULL,
+    datum_zaprimanja   DATE NOT NULL,
+    opis               NVARCHAR2(40) NOT NULL,
+    duzi_opis          NVARCHAR2(100) NOT NULL,
+    oznaka_potvrde     NVARCHAR2(1) DEFAULT 'N' NOT NULL,
+    user_dodavanja     NVARCHAR2(30) NOT NULL,
+    datum_dodavanja    DATE NOT NULL,
+    user_izmjene       NVARCHAR2(30) NOT NULL,
+    datum_izmjene      DATE NOT NULL
+);
+
+CREATE INDEX t_primke_zag_idx_dob ON
+    t_primke_zag ( id_dobavljaca ASC );
+
+CREATE INDEX t_primke_zag_idx_mt ON
+    t_primke_zag ( id_mt ASC );
+
+ALTER TABLE t_primke_zag ADD constraint t_primke_zag_ck_1 CHECK (oznaka_potvrde IN(
+    'N','D'
+) )
+;
+
+ALTER TABLE t_primke_zag add constraint t_primke_zag_ck_2 check  ( datum_isporuke <=
+datum_zaprimanja );
+
+ALTER TABLE t_primke_zag ADD CONSTRAINT t_primke_zag_pk PRIMARY KEY ( id );
+
+ALTER TABLE t_primke_zag ADD CONSTRAINT t_primke_zag_broj UNIQUE ( broj );
+
+ALTER TABLE t_primke_zag
+    ADD CONSTRAINT t_primke_zag_m_dobavljaci_fk FOREIGN KEY ( id_dobavljaca )
+        REFERENCES m_dobavljaci ( id );
+
+ALTER TABLE t_primke_zag
+    ADD CONSTRAINT t_primke_zag_m_mt_fk FOREIGN KEY ( id_mt )
+        REFERENCES m_mt ( id );
+
+CREATE TABLE t_primke_sta (
+    id                NUMBER(20) NOT NULL,
+    id_primke         NUMBER(20) NOT NULL,
+    id_sirovine       NUMBER(20) NOT NULL,
+    kolicina          NUMBER(12,2) NOT NULL,
+    nabavna_cijena    NUMBER(10,2) NOT NULL,
+    user_dodavanja    NVARCHAR2(30) NOT NULL,
+    datum_dodavanja   DATE NOT NULL,
+    user_izmjene      NVARCHAR2(30) NOT NULL,
+    datum_izmjene     DATE NOT NULL
+);
+
+CREATE INDEX t_primke_sta_primka ON
+    t_primke_sta ( id_primke ASC );
+
+CREATE INDEX t_primke_sta_sirovina ON
+    t_primke_sta ( id_sirovine ASC );
+
+ALTER TABLE t_primke_sta ADD constraint t_primke_sta_ck_1 CHECK (kolicina > 0);
+
+ALTER TABLE t_primke_sta ADD CONSTRAINT t_primke_sta_pk PRIMARY KEY ( id );
+
+ALTER TABLE t_primke_sta ADD CONSTRAINT id_primka_sirovina UNIQUE ( id_primke,
+id_sirovine );
+
+ALTER TABLE t_primke_sta
+    ADD CONSTRAINT m_sirovine_fk FOREIGN KEY ( id_sirovine )
+        REFERENCES m_sirovine ( id );
+
+ALTER TABLE t_primke_sta
+    ADD CONSTRAINT t_primke_zag_fk FOREIGN KEY ( id_primke )
+        REFERENCES t_primke_zag ( id );
+
+CREATE TABLE i_ulaz_nam (
+    id                NUMBER(20) NOT NULL,
+    datum             DATE NOT NULL,
+    id_mt             NUMBER(20) NOT NULL,
+    id_namirnice      NUMBER(20) NOT NULL,
+    kolicina          NUMBER(12,2) NOT NULL,
+    user_dodavanja    NVARCHAR2(30) NOT NULL,
+    datum_dodavanja   DATE NOT NULL,
+    user_izmjene      NVARCHAR2(30) NOT NULL,
+    datum_izmjene     DATE NOT NULL
+);
+
+ALTER TABLE i_ulaz_nam ADD CONSTRAINT i_ulaz_nam_pk PRIMARY KEY ( id );
+
+ALTER TABLE i_ulaz_nam
+    ADD CONSTRAINT i_ulaz_nam_m_mt_fk FOREIGN KEY ( id_mt )
+        REFERENCES m_mt ( id );
+
+ALTER TABLE i_ulaz_nam
+    ADD CONSTRAINT i_ulaz_nam_m_namirnice_fk FOREIGN KEY ( id_namirnice )
+        REFERENCES m_namirnice ( id );
+
+
+ALTER TABLE i_ulaz_nam
+    ADD CONSTRAINT i_ulaz_nam_un UNIQUE ( datum,
+    id_mt,
+    id_namirnice );
+
+CREATE SEQUENCE sekvenca_id;
+
+CREATE OR REPLACE PACKAGE upis_korisnik IS
+    FUNCTION sekvenca(id_p number) RETURN number;
+    PROCEDURE upis_user_polja(
+        user_dodavanja_p IN OUT VARCHAR2,
+        datum_dodavanja_p IN OUT date,
+        user_izmjene_p IN OUT VARCHAR2,
+        datum_izmjene_p IN OUT date);
+    END;
+
+CREATE OR REPLACE PACKAGE BODY upis_korisnik IS
+     FUNCTION sekvenca(id_p number) RETURN number IS
+        id_l number;
+        BEGIN
+         IF id_p IS NULL THEN
+            id_l :=sekvenca_id.nextval;
+         ELSE
+            id_l := id_p;
+        END IF;
+        RETURN id_l;
+     END;
+     
+    PROCEDURE upis_user_polja(
+        user_dodavanja_p IN OUT VARCHAR2,
+        datum_dodavanja_p IN OUT date,
+        user_izmjene_p IN OUT VARCHAR2,
+        datum_izmjene_p IN OUT date)
+    IS
+    BEGIN
+        IF user_dodavanja_p IS NULL THEN
+            user_dodavanja_p := USER;
+            datum_dodavanja_p := SYSDATE;
+        END IF;
+        user_izmjene_p := USER;
+        datum_izmjene_p :=SYSDATE;
+    END;
+END;
+
+
+CREATE OR REPLACE TRIGGER bir_m_dobavljaci
+    BEFORE INSERT ON m_dobavljaci
+    FOR EACH ROW BEGIN
+        :NEW.id := upis_korisnik.sekvenca(:NEW.id);
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE TRIGGER bur_m_dobavljaci
+    BEFORE UPDATE ON m_dobavljaci
+    FOR EACH ROW BEGIN
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+    
+CREATE OR REPLACE TRIGGER bir_ulaz_nam
+    BEFORE INSERT ON i_ulaz_nam
+    FOR EACH ROW BEGIN
+        :NEW.id := upis_korisnik.sekvenca(:NEW.id);
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE TRIGGER bur_i_ulaz_nam
+    BEFORE UPDATE ON i_ulaz_nam
+    FOR EACH ROW BEGIN
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+    
+CREATE OR REPLACE TRIGGER bir_m_mt
+    BEFORE INSERT ON m_mt
+    FOR EACH ROW BEGIN
+        :NEW.id := upis_korisnik.sekvenca(:NEW.id);
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE TRIGGER bur_m_mt
+    BEFORE UPDATE ON m_mt
+    FOR EACH ROW BEGIN
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+    
+CREATE OR REPLACE TRIGGER bir_m_namirnice
+    BEFORE INSERT ON m_namirnice
+    FOR EACH ROW BEGIN
+        :NEW.id := upis_korisnik.sekvenca(:NEW.id);
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE TRIGGER bur_m_namirnice
+    BEFORE UPDATE ON m_namirnice
+    FOR EACH ROW BEGIN
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+    
+CREATE OR REPLACE TRIGGER bir_m_rastav_sirovina
+    BEFORE INSERT ON m_rastav_sirovina
+    FOR EACH ROW BEGIN
+        :NEW.id := upis_korisnik.sekvenca(:NEW.id);
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE TRIGGER bur_m_rastav_sirovina
+    BEFORE UPDATE ON m_rastav_sirovina
+    FOR EACH ROW BEGIN
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+    
+CREATE OR REPLACE TRIGGER bir_m_sirovine
+    BEFORE INSERT ON m_sirovine
+    FOR EACH ROW BEGIN
+        :NEW.id := upis_korisnik.sekvenca(:NEW.id);
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE TRIGGER bur_m_sirovine
+    BEFORE UPDATE ON m_sirovine
+    FOR EACH ROW BEGIN
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+    
+CREATE OR REPLACE TRIGGER bir_t_primke_sta
+    BEFORE INSERT ON t_primke_sta
+    FOR EACH ROW BEGIN
+        :NEW.id := upis_korisnik.sekvenca(:NEW.id);
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE TRIGGER bur_t_primke_sta
+    BEFORE UPDATE ON t_primke_sta
+    FOR EACH ROW BEGIN
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+    
+    
+CREATE OR REPLACE TRIGGER bir_t_primke_zag
+    BEFORE INSERT ON t_primke_zag
+    FOR EACH ROW BEGIN
+        :NEW.id := upis_korisnik.sekvenca(:NEW.id);
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE TRIGGER bur_t_primke_zag
+    BEFORE UPDATE ON t_primke_zag
+    FOR EACH ROW BEGIN
+        upis_korisnik.upis_user_polja(
+            :NEW.user_dodavanja,
+            :NEW.datum_dodavanja,
+            :NEW.user_izmjene,
+            :NEW.datum_izmjene
+        );
+    END;
+
+CREATE OR REPLACE PROCEDURE provjera_udjela(id_sir IN OUT number) IS
+    suma_udio number;
+
+BEGIN
+SELECT SUM(udio) INTO suma_udio
+  FROM m_rastav_sirovina
+ WHERE id_sirovine = id_sir;
+
+IF suma_udio <> 100 THEN
+  RAISE_APPLICATION_ERROR (-20000, 'Greska - udio namirnica nije 100%');
+END IF;
+END;
+
+CREATE OR REPLACE TRIGGER aur_provjera_udjela
+    AFTER UPDATE ON m_sirovine
+    FOR EACH ROW  
+     DECLARE id_sirovina NUMBER:= :NEW.ID;
+    BEGIN
+        IF :NEW.OZNAKA_POTVRDE='D' THEN
+            provjera_udjela(id_sirovina);
+        END IF;
+    END;
+
+//CREATE OR REPLACE PROCEDURE provjera_kolicine IS
+ 
+ DECLARE
+provjera NUMBER;
+  kolicina_nam NUMBER;
+  
+  
+BEGIN
+  FOR primka IN (
+    SELECT t_primke_zag.id AS id,
+           t_primke_zag.id_mt AS mt
+      FROM t_primke_zag
+     WHERE oznaka_potvrde = 'N')
+  LOOP
+    FOR primka2 IN (
+      SELECT t_primke_sta.id_sirovine AS id_sir,
+             t_primke_sta.kolicina AS kolicina,
+             m_rastav_sirovina.id_namirnice AS id_nam,
+             m_rastav_sirovine.udio AS udio
+        FROM t_primke_sta JOIN m_rastav_sirovina ON t_primke_sta.id_sirovine =
+m_rastav_sirovine.id_sirovine
+       WHERE t_primke_sta.id_primke = primka.id)
+    LOOP
+   
+   provjera:=0;
+   
+SELECT COUNT (*)FROM i_ulaz_nam WHERE 
+TO_DATE(i_ulaz_nam.datum_dodavanja,'YYYY-MM-DD')=TO_DATE(SYSDATE,'YYYY-MM-DD'))
+
+IF (i_ulaz_nam.id_mt = primka.mt AND i_ulaz_nam.id_namirnice = primka2.id_nam) THEN
+          provjera := 1;
+        END IF;
+
+      kolicina_nam := primka2.kolicina * (primka2.UDIO / 100);
+
+      IF provjera = 0 THEN
+        INSERT INTO i_ulaz_nam
+          VALUES (NULL, 
+                  TO_DATE(SYSDATE, 'YYYY-MM-DD'), 
+                  primka.mjesto_troska, 
+                  primka2.namirnice, 
+                  kolicina_nam, 
+                  NULL, 
+                  TO_DATE('2018-05-07', 'YYYY-MM-DD'), 
+                  'U1', 
+                  TO_DATE('2018-04-07', 'YYYY-MM-DD'));
+
+
+                  DBMS_OUTPUT.PUT_LINE('INSERT');
+      ELSE
+        UPDATE i_ulaz_nam
+           SET kolicina = kolicina + kolicina_nam
+         WHERE id_mt=primka.mjesto_troska
+           AND id_namirnice = primka2.namirnice;
+
+        DBMS_OUTPUT.PUT_LINE('UPDATE');
+      END IF;
+      END LOOP;
+END LOOP;
+COMMIT;
+END;
+//
+
+BEGIN 
+    DBMS_SCHEDULER.CREATE_JOB(
+        job_name => 'kolicina_namirnica',
+        job_type => 'stored_procedure',
+        job_action => 'provjera_kolicine',
+        start_date => SYSDATE,
+        repeat_interval => 'freq=HOURLY; interval=24'
+    );
+END;
+
+
+Create or replace PROCEDURE azuriranje IS
+  provjera NUMBER:=0;
+  kolicina_nam NUMBER;
+  brojac NUMBER;
+
+BEGIN
+
+  FOR zag IN (
+    SELECT id ,
+           id_mt,
+           datum_zaprimanja
+    FROM t_primke_zag
+    WHERE oznaka_potvrde = 'N')
+  	LOOP
+    		FOR stavka IN (SELECT id_sirovine ,
+             			      kolicina 
+                           FROM t_primke_sta
+            		       WHERE id_primke = zag.id)
+            LOOP
+            	FOR sirovine IN(SELECT id_namirnice,
+            			       udio
+            		    FROM m_rastav_sirovina
+        		    WHERE id_sirovine = stavka.id_sirovine)
+       		LOOP
+
+    			SELECT COUNT (*) INTO provjera 
+			FROM i_ulaz_nam WHERE id_namirnice=sirovine.id_namirnice 
+                AND id_mt=zag.id_mt 
+                AND TO_DATE(datum_dodavanja, 'YYYY-MM-DD')=TO_DATE(SYSDATE, 'YYYY-MM-DD')  ;  
+
+      			kolicina_nam := stavka.kolicina * (sirovine.UDIO / 100); 
+
+      			IF (provjera = 0) THEN 
+        			INSERT INTO i_ulaz_nam (datum,id_mt,id_namirnice,kolicina)
+          			VALUES (TO_DATE(SYSDATE, 'YYYY-MM-DD'), 
+                  			zag.id_mt, 
+                  			sirovine.id_namirnice, 
+                  			kolicina_nam 
+                  			);
+
+                  		DBMS_OUTPUT.PUT_LINE('INSERT');
+      			ELSE				
+        			UPDATE i_ulaz_nam
+           			SET kolicina = kolicina + kolicina_nam
+         			WHERE id_mt=zag.id_mt 
+                        AND id_namirnice = sirovine.id_namirnice 
+                        AND TO_DATE(datum, 'YYYY-MM-DD')=TO_DATE(SYSDATE, 'YYYY-MM-DD');
+        			DBMS_OUTPUT.PUT_LINE('UPDATE');
+
+      			END IF;
+
+
+        	END LOOP;
+      	    END LOOP;
+	UPDATE T_PRIMKE_ZAG SET OZNAKA_POTVRDE='D' WHERE ID=zag.ID;
+	END LOOP;
+    COMMIT;
+END;
